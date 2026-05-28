@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, GraduationCap, Play, Pause, Maximize2, Minimize2 } from 'lucide-react'
+import NoSleep from 'nosleep.js'
 
 import SlideHero        from './slides/SlideHero'
 import SlideStats       from './slides/SlideStats'
@@ -51,31 +52,31 @@ export default function App() {
   const [progress,   setProgress]   = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const touchX      = useRef(null)
-  const wakeLock    = useRef(null)
+  const noSleep     = useRef(new NoSleep())
 
-  // Keep screen awake using Wake Lock API
+  // Keep screen awake — uses silent looping video trick (works on Safari/iOS)
   useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock.current = await navigator.wakeLock.request('screen')
-        }
-      } catch (err) {
-        // Wake lock request failed — not a critical error
-      }
+    const enable = () => {
+      noSleep.current.enable()
     }
 
-    requestWakeLock()
+    // Enable immediately (works for muted video autoplay on iOS 10+)
+    // Also enable on first interaction as a fallback
+    noSleep.current.enable()
+    document.addEventListener('touchstart', enable, { once: true })
+    document.addEventListener('click',      enable, { once: true })
 
-    // Re-acquire wake lock when page becomes visible again
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') requestWakeLock()
+    // Re-enable when tab becomes visible again
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') noSleep.current.enable()
     }
-    document.addEventListener('visibilitychange', onVisibilityChange)
+    document.addEventListener('visibilitychange', onVisible)
 
     return () => {
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-      wakeLock.current?.release()
+      document.removeEventListener('touchstart', enable)
+      document.removeEventListener('click',      enable)
+      document.removeEventListener('visibilitychange', onVisible)
+      noSleep.current.disable()
     }
   }, [])
   const intervalRef = useRef(null)
