@@ -51,6 +51,33 @@ export default function App() {
   const [progress,   setProgress]   = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const touchX      = useRef(null)
+  const wakeLock    = useRef(null)
+
+  // Keep screen awake using Wake Lock API
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock.current = await navigator.wakeLock.request('screen')
+        }
+      } catch (err) {
+        // Wake lock request failed — not a critical error
+      }
+    }
+
+    requestWakeLock()
+
+    // Re-acquire wake lock when page becomes visible again
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      wakeLock.current?.release()
+    }
+  }, [])
   const intervalRef = useRef(null)
   const progressRef = useRef(null)
   const startTime   = useRef(null)
