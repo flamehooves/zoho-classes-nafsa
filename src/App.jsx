@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, GraduationCap, Play, Pause } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GraduationCap, Play, Pause, Maximize2, Minimize2 } from 'lucide-react'
 
 import SlideHero        from './slides/SlideHero'
 import SlideStats       from './slides/SlideStats'
@@ -45,10 +45,11 @@ const variants = {
 }
 
 export default function App() {
-  const [current,   setCurrent]   = useState(0)
-  const [direction, setDirection] = useState(1)
-  const [autoPlay,  setAutoPlay]  = useState(false)
-  const [progress,  setProgress]  = useState(0)
+  const [current,    setCurrent]    = useState(0)
+  const [direction,  setDirection]  = useState(1)
+  const [autoPlay,   setAutoPlay]   = useState(false)
+  const [progress,   setProgress]   = useState(0)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const touchX      = useRef(null)
   const intervalRef = useRef(null)
   const progressRef = useRef(null)
@@ -128,6 +129,20 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [manualGoNext, manualGoPrev])
 
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }, [])
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
   const onTouchStart = (e) => { touchX.current = e.touches[0].clientX }
   const onTouchEnd   = (e) => {
     if (touchX.current === null) return
@@ -164,6 +179,15 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* Fullscreen button */}
+      <button
+        onClick={toggleFullscreen}
+        title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+        className="fixed top-3 right-4 z-50 w-8 h-8 rounded-lg bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm flex items-center justify-center hover:bg-white hover:shadow-md transition-all text-slate-500 hover:text-zoho-700"
+      >
+        {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+      </button>
 
       {/* Logo */}
       <div className="fixed top-3 left-4 z-50 flex items-center gap-2 pointer-events-none">
